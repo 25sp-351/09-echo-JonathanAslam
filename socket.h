@@ -1,7 +1,9 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-void handleConnection(int* sock_fd_ptr);
+extern int print_to_terminal;
+
+void incomingClientConnection(int* sock_fd_ptr);
 
 
 #endif // SOCKET_H

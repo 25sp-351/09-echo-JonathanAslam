@@ -2,24 +2,40 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include "socket.h"
 
 #define LISTEN_BACKLOG 5
-#define PORT 8080
-
-
+#define DEFAULT_PORT 8080
 
 int main(int argc, char* argv[]) {
+    int port = DEFAULT_PORT;
 
-    // Create listening socket
+    // using the int to act as a T/F bool with 0 (false) and 1 (true). 
+    // int is print_to_terminal from socket.h
+
+    // check for -p argument in command line (./exe -p 'portnum') should be the
+    // format, check every spot of the command line argument vector
+
+    // check for -v value in the argument vector to see if we print to terminal
+    // or not
+
+    for (int ix = 0; ix < argc; ix++) {
+        if (strcmp(argv[ix], "-p") == 0 && (ix + 1) < argc) {
+            sscanf(argv[ix + 1], "%d", &port);
+        }
+        if (strcmp(argv[ix], "-v") == 0 && (ix + 1) < argc) {
+            print_to_terminal = 1;
+            printf("Printing to terminal\n");
+        }
+    }
+
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    // check if socket was created successfully
     if (socket_fd < 0) {
         perror("socket");
         return 1;
@@ -29,9 +45,9 @@ int main(int argc, char* argv[]) {
     memset(&socket_address, '\0', sizeof(socket_address));
     socket_address.sin_family      = AF_INET;
     socket_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    socket_address.sin_port        = htons(PORT);
+    socket_address.sin_port        = htons(port);
 
-    printf("Binding to port %d\n", PORT);
+    printf("Binding to port %d\n", port);
 
     int returnval;
 
@@ -42,13 +58,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // listen for incoming connection
     returnval = listen(socket_fd, LISTEN_BACKLOG);
     if (returnval < 0) {
         perror("listen");
         return 1;
     }
-    printf("Echo server is listening on port %d...\n", PORT);
+    printf("Echo server is listening on port %d...\n", port);
 
     // (from slides)
     struct sockaddr_in client_address;
@@ -64,10 +79,10 @@ int main(int argc, char* argv[]) {
 
         printf("Accepted connection on %d\n", *client_fd_buf);
 
-        pthread_create(&thread, NULL, (void* (*)(void*))handleConnection, (void*)client_fd_buf);
+        pthread_create(&thread, NULL, (void* (*)(void*))incomingClientConnection,
+                       (void*)client_fd_buf);
 
         pthread_detach(thread);
-
     }
 
     return 0;
